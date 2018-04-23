@@ -18,38 +18,167 @@
                        (12 "You are in the Skylands!")))
 
 
-(define weapons      '((1 "A Staff")
+(define weapons      '((1 "A Staff, a Chair, a Candle")
                        (2 "A Sword")
-                       (2 "A Rope, a Hammer, a Lance, ")
-                       (2 "A Hammer")
-                       (3 "You")
-                       (6 "You are in the swamplands")
-                       (7 "You have entered the Elf Forest")
-                       (8 "You are in the Dwarf Kingdom")
-                       (9 "You are on Dragon Stone")
-                       (10 "You have entered Tamaray")
-                       (11 "You are in the mountains")
-                       (12 "Your quest has ended!")))
+                       (2 "A Rope, a Ladder, a Lance")
+                       (2 "A Hammer, a Spear, an Axe, Arrows")
+                       (3 "A Phoenix, a Unicorn")
+                       (4 "A Mountain, a High Tower, a Cliff Edge")
+                       (5 "Plant, a Tree")
+                       (6 "Grow Potion, Strength Potion, Speed Potion")
+                       (6 "Invisibilty Potion, Disguise Potion")
+                       (6 "Bottles of Water, Food")
+                       (7 "Food Supplies")
+                       (7 "Fire, a Lantern, a Flame")
+                       (7 "A Bonfire")
+                       (8 "A Castle, a Barnyard")
+                       (8 "An Old Hut, a Shack")
+                       (9 "A Tree house")
+                       (9 "Arrow men, Spear men")
+                       (10 "Sword men, Tree men")
+                       (10 "A Falcon, an Owl, a Sparrow")
+                       (11 "A flock of Eagles")
+                       (11 "A Shark, A Whale,")
+                       (12 "A pod of Dolphins")))
 
 
+(define enemies '((3 "A Dragon")
+                  (9 "A Monster")
+                  (11 "The Wizard")))
 
 
-
-
+;; Game Actions and Options
 (define look '(((directions) look) ((look) look) ((examine room) look)))
 (define fight '(((attack) fight) ((battle) fight) ((destroy) destroy)))
 (define run '(((go) run) ((speed) run) ((go now) run)))
-(define collect '(((pick) collect) ((take) pick) ((pick up) pick)))
+(define food '(((food) food) ((eat) food) ((food time) food)))
+(define climb '(((climb) climb) ((go up) climb) ((upwards) climb)))
+(define partner '(((partner) partner) ((friend) partner) ((back up) partner)))
+(define light '(((light) light) ((fire) light) ((light up) fire)))
+(define arsenal '(((pick) arsenal) ((weapon) arsenal) ((arm up) arsenal)))
 
 (define quit '(((exit game) quit) ((quit game) quit) ((exit) quit) ((quit) quit)))
-(define actions `(,@look ,@quit ,@run ,@collect))
+(define actions `(,@look ,@quit ,@run ,@fight ,@climb ,@partner
+                         ,@light ,@food ,@arsenal))
 
-(define decisiontable `((1 ((north) 2) ((north end) 7) ,@actions)
-                        (2 ((south) 3) ,@actions)
-                        (3 ((east) 4)  ,@actions)
-                        (4 ((west) 5) ,@actions)
-                        (5 ((western) 9) ,@actions)
-                        (6 ,@actions)))
+
+;; Direction Options
+(define decisiontable `((1 ((north) 2) ((north west) 3) ((north east) 4) ,@actions)
+                        (2 ((south) 1) ,@actions)
+                        (3 ((east) 6) (west 7) ,@actions)
+                        (4 ((west) 7) ,@actions)
+                        (5 ((north east) 9) ,@actions)
+                        (6 ((north west) 7) ,@actions)
+                        (7 ((south west) 10) ,@actions)
+                        (8 ((south east) 12) ,@actions)
+                        (9 ((west) 8)  ,@actions)
+                        (10 ((east) 1) ,@actions)
+                        (11 ((west) 6) ,@actions)
+                        (12 ((south) 11) ,@actions)))
+
+
+
+(define arsenaldb (make-hash))
+(define fooddb (make-hash))
+(define partnerdb (make-hash))
+(define lightdb (make-hash))
+
+
+(define (add-arsenal db id arsenal)
+  (if (hash-has-key? db id)
+      (let ((record (hash-ref db id)))
+        (hash-set! db id (cons arsenal record)))
+        (hash-set! db id (cons arsenal empty))))
+
+
+(define (add-food db id food)
+  (if (hash-has-key? db id)
+      (let ((record (hash-ref db id)))
+        (hash-set! db id (cons food record)))
+        (hash-set! db id (cons food empty))))
+
+
+(define (add-light db id light)
+  (if (hash-has-key? db id)
+      (let ((record (hash-ref db id)))
+        (hash-set! db id (cons light record)))
+        (hash-set! db id (cons light empty))))
+
+
+(define (add-partner db id partner)
+  (if (hash-has-key? db id)
+      (let ((record (hash-ref db id)))
+        (hash-set! db id (cons partner record)))
+        (hash-set! db id (cons partner empty))))
+
+;;
+(define (add-arsenals db)
+ (for-each
+(lambda (r)  
+(add-arsenal db (first r) (second r))) arsenal))
+
+;;
+(define (add-foods db) (for-each
+(lambda (r)
+(add-food db (first r) (second r))) food))
+
+;;
+(define (add-partners db) (for-each
+(lambda (r)
+(add-partner db (first r) (second r))) partner))
+
+;;
+(define (add-lights db) (for-each
+(lambda (r)
+(add-food db (first r) (second r))) light))
+
+
+
+;;
+(define (display-arsenals db id)
+(when (hash-has-key? db id)
+  
+;;join string if multiple items
+
+  (let* ((record (hash-ref db id))
+(output (string-join record " and " ))) ;;depending on the parameter provide different answer
+(when (not (equal? output ""))
+(if (eq? id 'store)
+         (printf "You are carrying ~a.\n" output)
+         (printf "You can see ~a.\n" output))))))
+        
+                    
+                   
+;;(define (remove-object-from-room db id str)
+  ;;(when (hash-has-key? db id)
+;;(let* ((record (hash-ref db id))
+;;(result (remove (lambda (x) (string-suffix-ci? str x)) record))
+;;item is the difference with the previous lists e.g. the item collected
+
+;;(item (lset-difference equal? record result))) (cond ((null? item)
+;;(printf "I don't see that item in the Room!\n")) (else
+;;(printf "Added ~a to your bag.\n" (first item)) (add-object inventorydb 'bag (first item)) (hash-set! db id result)))))
+;;(when (hash-has-key? db 'bag)
+;;(let* ((record (hash-ref db 'bag))
+;;(result (remove (lambda (x) (string-suffix-ci? str x)) record))
+;;(item (lset-difference equal? record result))) (cond ((null? item)
+;;(printf "You are not carrying that item!\n")) (else
+;;(printf "Removed ~a from your bag.\n" (first item)) (add-object objectdb id (first item))
+;;(hash-set! db 'bag result))))))
+
+
+
+
+;;(add-enemies enemydb) (add-objects objectdb)
+;;this function can be called to check the items in the room or ;;items available in the inventory
+;;(define (display-objects db id)
+;;(when (hash-has-key? db id)
+;;join string if multiple items (let* ((record (hash-ref db id))
+;;(output (string-join record " and " ))) ;;depending on the parameter provide different answer
+;;(when (not (equal? output ""))
+;;(if (eq? id (printf (printf
+
+
 
 
 ;(define (get-directions id)
@@ -135,4 +264,4 @@
                (format #t "So Long, and Thanks for All the Fish...\n")
                (exit)))))))
 
-;(startgame 1)
+(startgame 1)
