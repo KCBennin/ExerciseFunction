@@ -410,7 +410,7 @@ keylist))
 
 
   ((eq? response 'quit)
-   (printf "Goodbye...\n")
+   (printf "thank you for playing...\n")
    (exit)))))))
   
  (startgame 1)
