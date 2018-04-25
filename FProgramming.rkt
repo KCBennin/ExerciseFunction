@@ -1,8 +1,7 @@
 #lang racket
-
 (require srfi/1)
 (require srfi/13)
-(require srfi/48)
+
 
 (define descriptions '((1 "You are on the Plains")
                        (2 "You are in the Highlands")
@@ -42,7 +41,7 @@
                        (12 "A pod of Dolphins")))
 
 
-(define enemies '((3 "A Dragon")
+(define opponents '((3 "A Dragon")
                   (9 "A Monster")
                   (11 "The Wizard")))
 
@@ -83,34 +82,18 @@
                
 
 ;; hash tables 
-(define arsenaldb (make-hash))
-(define fooddb (make-hash))
+(define objectdb (make-hash))
 (define partnerdb (make-hash))
-(define lightdb (make-hash))
 (define opponentdb (make-hash))
+(define inventorydb (make-hash))
 
 
 ;; check if has key options
-(define (add-arsenal db id arsenal)
+(define (add-object db id object)
   (if (hash-has-key? db id)
-      (let ((record (hash-ref db id)))
-        (hash-set! db id (cons arsenal record)))
-        (hash-set! db id (cons arsenal empty))))
-
-
-(define (add-food db id food)
-  (if (hash-has-key? db id)
-      (let ((record (hash-ref db id)))
-        (hash-set! db id (cons food record)))
-        (hash-set! db id (cons food empty))))
-
-
-(define (add-light db id light)
-  (if (hash-has-key? db id)
-      (let ((record (hash-ref db id)))
-        (hash-set! db id (cons light record)))
-        (hash-set! db id (cons light empty))))
-
+    (let ((record (hash-ref db id)))
+      (hash-set! db id (cons object record)))
+        (hash-set! db id (cons object empty))))
 
 (define (add-partner db id partner)
   (if (hash-has-key? db id)
@@ -125,88 +108,72 @@
         (hash-set! db id (cons opponent empty))))
 
 ;;
-(define (add-arsenals db)
+(define (add-objects db)
  (for-each
 (lambda (r)  
-(add-arsenal db (first r) (second r))) arsenal))
+(add-object db (first r) (second r))) objects))
 
-;;
-(define (add-foods db)
-  (for-each
-(lambda (r)
-(add-food db (first r) (second r))) food))
 
-;;
 (define (add-partners db)
   (for-each
 (lambda (r)
-(add-partner db (first r) (second r))) partner))
+(add-partner db (first r) (second r))) partners))
 
 ;;
-(define (add-lights db)
-  (for-each
-    (lambda (r)
-(add-food db (first r) (second r))) light))
-
 (define (add-opponents db)
   (for-each
     (lambda (r)
-(add-food db (first r) (second r))) opponent))
+(add-opponent db (first r) (second r))) opponents))
 
-(add-arsenals arsenaldb)
-(add-foods fooddb)
+
 (add-partners partnerdb)
-(add-lights lightdb)
 (add-opponents opponentdb)
+(add-objects objectdb)
+
 
 
 
 ;; stock check of items available
-(define (display-arsenals db id)
+(define (display-objects db id)
 (when (hash-has-key? db id)
-  
-;;join string if multiple items
-
+  ;;join string if multiple items
   (let* ((record (hash-ref db id))
         (output (string-join record " and " )))
-
     ;;depending on the parameter provide different answer
-
     (when (not (equal? output ""))
-       (if (eq? id 'backpack)
+       (if (eq? id 'bag)
          (printf "You have collected ~a.\n" output)
          (printf "You can observe ~a.\n" output))))))
         
                     
   ;;REFACTORED CODES
-(define (remove-item-from-place db id str)
+
+(define (remove-object-from-room db id str)
  (when (hash-has-key? db id)
    (let* ((record (hash-ref db id))
         (result (remove (lambda (x) (string-suffix-ci? str x)) record))
-
 ;;item is the difference with the previous lists e.g. the item collected
-
         (item (lset-difference equal? record result)))
   (cond ((null? item)
       (printf "I cant find the weapon!\n"))
     (else
-      (printf "Added ~a to your backpack .\n" (first item))
-      (add-weapon arsenaldb 'backpack (first item))
-      (hash-set! db id result)))))
+      (printf "Added ~a to your backpack.\n" (first item))
+      (add-arsenal inventorydb 'bag (first item))
+      (hash-set! db id result))))))
 
   
-(when (hash-has-key? db 'backpack)
-   (let* ((record (hash-ref db 'backpack))
+(when (hash-has-key? db 'bag)
+   (let* ((record (hash-ref db 'bag))
          (result (remove (lambda (x) (string-suffix-ci? str x)) record))
          (item (lset-difference equal? record result)))
   (cond ((null? item)
         (printf "You are not qualified for this weapon!\n"))
       (else
-        (printf "Lost ~a from your arsenal!\n" (first item))
-        (add-weapon arsenaldb id (first item))
-        (hash-set! db 'backpack result))))))
+        (printf "Lost ~a from your arsenal.\n" (first item))
+        (add-object objectdb id (first item))
+        (hash-set! db 'bag result)))))
 
-(define (show-enemies db id)
+(define (display-opponents db id)
     (when (hash-has-key? db id) ;;join string if multiple enemies
         (let* ((record (hash-ref db id))
         (output (string-join record " and " ))) ;;parameter provide different answer
@@ -226,13 +193,11 @@
 ;      (printf "\n")))
 
 
-(define (remove-object-from-room db id str)
+(define (remove-opponent-from-room db id str)
   (when (hash-has-key? db id)
     (let* ((record (hash-ref db id))
           (result (remove (lambda (x) (string-suffix-ci? str x)) record))
-      
-;;item is the difference with the previous lists e.g. the item collected
-      (item (lset-difference equal? record result)))
+          (item (lset-difference equal? record result)))
   (cond ((null? item)
         (printf "I don't see that enemy in the Room!\n"))
       (else
@@ -266,31 +231,26 @@
 
 
 
-(define (pick-partner id input)
+(define (pick-item id input)
    (let ((item (string-join (cdr (string-split input)))))
-       (remove-partner-from-place partnerdb id item)))
+       (remove-object-from-room objectdb id item)))
 
-(define (food-item id input)
+(define (attack-opponent id input)
     (let ((item (string-join (cdr (string-split input)))))
-       (remove-food-from-room fooddb id item)))
+       (remove-opponent-from-room opponentdb id item)))
 
-(define (arsenal-item id input)
+(define (place-item id input)
     (let ((item (string-join (cdr (string-split input)))))
-       (remove-weapon-from-room arsenaldb id item)))
+       (remove-object-from-room inventorydb id item)))
 
-(define (fire-item id input)
-    (let ((item (string-join (cdr (string-split input)))))
-       (remove-light-from-room lightdb id item)))
+(define (now-eat id input)
+   (printf "You have eaten a nice meal"))
 
+(define (go-climb id input)
+   (printf "You have climbed a great height"))
 
-(define (have-eat id input)
-   (printf "You have eaten"))
-
-(define (have-climb id input)
-   (printf "You have climbed"))
-
-(define (have-sit id input)
-   (printf "You are Seated on the Pool Chair"))
+(define (now-sit id input)
+   (printf "You have earned yourself a nice rest"))
 
 (define (display-inventory)
    (display-objects inventorydb 'bag))
@@ -329,7 +289,8 @@
 (let ((keys (assq-ref decisiontable id)))
 (map (lambda (key) (car key)) keys)))
 
-;; This function will return the length of a list. ;; outputs a list in the form: (0 0 0 2 0 0)
+;; This function will return the length of a list.
+;; outputs a list in the form: (0 0 0 2 0 0)
 (define (list-of-lengths keylist tokens)
 (map
  (lambda(x)
@@ -357,7 +318,7 @@ keylist))
 
 
 (define (display-description id)
-  (printf "~a. \n" (get-description id)))
+  (printf "~a.\n" (get-description id)))
 
 ;;Game starts function is defined here
 (define (startgame initial-id)
@@ -367,9 +328,11 @@ keylist))
         (display-objects objectdb id)
         (display-enemies enemydb id)
          (printf "> "))
+    
 
      ;;error message
-(let* ((input (read-line))
+
+     (let* ((input (read-line))
     (string-tokens (string-tokenize input))
     (tokens (map string->symbol string-tokens)))
   
@@ -411,6 +374,7 @@ keylist))
 
   ((eq? response 'quit)
    (printf "thank you for playing...\n")
-   (exit)))))))
+   (exit))))))))))
   
  (startgame 1)
+
